@@ -4,29 +4,47 @@
 @inject IUriHelper UriHelper
 
 <div class="main">
-    <div class="checkout-cols">
-        <div class="checkout-order-details">
-            <h4>Review order</h4>
-            <OrderReview Order="@OrderState.Order" />
-        </div>
-        
-        <div class="checkout-delivery-address">
-            <h4>Deliver to...</h4>
-            <AddressEditor Address="@OrderState.Order.DeliveryAddress" />
-        </div>
-    </div>
+    <EditForm Model="@OrderState.Order.DeliveryAddress" OnValidSubmit="@PlaceOrder">
+        <div class="checkout-cols">
+            <div class="checkout-order-details">
+                <h4>Review order</h4>
+                <OrderReview Order="@OrderState.Order" />
+            </div>
 
-    <button class="checkout-button btn btn-warning" @onclick="@PlaceOrder">
-        Place order
-    </button>
+            <div class="checkout-delivery-address">
+                <h4>Deliver to...</h4>
+                <AddressEditor Address="@OrderState.Order.DeliveryAddress" />
+            </div>
+        </div>
+
+        <button 
+            disabled="@isSubmitting"
+            class="checkout-button btn btn-warning" 
+            type="submit">
+            Place order
+        </button>
+
+        <DataAnnotationsValidator />
+    </EditForm>
 </div>
 
 @functions {
+    bool isSubmitting;
+
      async Task PlaceOrder()
     {
-        var newOrderId = await HttpClient.PostJsonAsync<int>("orders", OrderState.Order);
-        OrderState.ResetOrder();
-
-        UriHelper.NavigateTo($"myorders/{newOrderId}");
+        try
+        {
+            isSubmitting = true;
+            var newOrderId = await HttpClient.PostJsonAsync<int>("orders", OrderState.Order);
+            OrderState.ResetOrder();
+            UriHelper.NavigateTo($"myorders/{newOrderId}");
+            isSubmitting = false;
+        }
+        catch (Exception ex)
+        {
+            isSubmitting = false;
+            Console.Error.WriteLine(ex);
+        }
     }
 }
