@@ -4,12 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BlazingPizza.Server
 {
     [Route("orders")]
     [ApiController]
-    // [Authorize]
+    [Authorize]
     public class OrdersController : Controller
     {
         private readonly PizzaStoreContext _db;

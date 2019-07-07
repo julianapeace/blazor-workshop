@@ -2,33 +2,71 @@
 @inject HttpClient HttpClient
 @inject OrderState OrderState
 @inject IUriHelper UriHelper
+@inject IJSRuntime JSRuntime 
 
 <div class="main">
-    <EditForm Model="@OrderState.Order.DeliveryAddress" OnValidSubmit="@PlaceOrder">
-        <div class="checkout-cols">
-            <div class="checkout-order-details">
-                <h4>Review order</h4>
-                <OrderReview Order="@OrderState.Order" />
-            </div>
+    <AuthorizeView Context="authContext">
+        <NotAuthorized>
+            <h2>Redirecting you...</h2>
+        </NotAuthorized>
+        <Authorized>
+            <EditForm Model="@OrderState.Order.DeliveryAddress" OnValidSubmit="@PlaceOrder">
+                <div class="checkout-cols">
+                    <div class="checkout-order-details">
+                        <h4>Review order</h4>
+                        <OrderReview Order="@OrderState.Order" />
+                    </div>
 
-            <div class="checkout-delivery-address">
-                <h4>Deliver to...</h4>
-                <AddressEditor Address="@OrderState.Order.DeliveryAddress" />
-            </div>
-        </div>
+                    <div class="checkout-delivery-address">
+                        <h4>Deliver to...</h4>
+                        <AddressEditor Address="@OrderState.Order.DeliveryAddress" />
+                    </div>
+                </div>
 
-        <button 
-            disabled="@isSubmitting"
-            class="checkout-button btn btn-warning" 
-            type="submit">
-            Place order
-        </button>
+                <button 
+                    disabled="@isSubmitting"
+                    class="checkout-button btn btn-warning" 
+                    type="submit">
+                    Place order
+                </button>
 
-        <DataAnnotationsValidator />
-    </EditForm>
+                <DataAnnotationsValidator />
+            </EditForm>
+        </Authorized>
+    </AuthorizeView>
 </div>
 
 @functions {
+    [CascadingParameter] Task<AuthenticationState> AuthenticationStateTask { get; set; }
+    
+    protected override async Task OnInitAsync()
+    {
+        var authState = await AuthenticationStateTask;
+        if (!authState.User.Identity.IsAuthenticated)
+        {
+            // the server won't accept orders from unauthenticated users, so avoid an error by making the login at this point
+            await LocalStorage.SetAsync(JSRuntime, "currentorder", OrderState.Order);
+            Console.WriteLine("With the default new line characters:");
+            Console.WriteLine();
+            UriHelper.NavigateTo("user/signin?redirectUri=/checkout", true);
+        }
+
+        if (!OrderState.Order.Pizzas.Any())
+        {
+            var savedOrder = await LocalStorage.GetAsync<Order>(JSRuntime, "currentorder");
+
+            if (savedOrder != null)
+            {
+                OrderState.ReplaceOrder(savedOrder);
+                await LocalStorage.DeleteAsync(JSRuntime, "currentorder");
+            }
+            else
+            {
+                UriHelper.NavigateTo("");
+            }
+        }
+    }
+
     bool isSubmitting;
 
      async Task PlaceOrder()
