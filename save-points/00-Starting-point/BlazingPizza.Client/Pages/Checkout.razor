@@ -46,8 +46,7 @@
         {
             // the server won't accept orders from unauthenticated users, so avoid an error by making the login at this point
             await LocalStorage.SetAsync(JSRuntime, "currentorder", OrderState.Order);
-            Console.WriteLine("With the default new line characters:");
-            Console.WriteLine();
+
             UriHelper.NavigateTo("user/signin?redirectUri=/checkout", true);
         }
 
@@ -58,7 +57,6 @@
             if (savedOrder != null)
             {
                 OrderState.ReplaceOrder(savedOrder);
-                await LocalStorage.DeleteAsync(JSRuntime, "currentorder");
             }
             else
             {
